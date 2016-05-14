@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+    "http://struts.apache.org/dtds/struts-2.3.dtd">
+<struts>
+	<constant name="struts.devMode" value="false" />
+	<constant name="struts.objectFactory" value="spring" />
+	<!-- 注册国际化文件 -->
+	<constant name="struts.custom.i18n.resources" value="message" />
+	<package name="basicstruts2" extends="struts-default">
+		<interceptors>
+			<!-- 注册自定义拦截器 -->
+			<interceptor name="BOSLoginInterceptor"
+				class="com.itheima.bos.web.interceptor.BOSLoginInterceptor">
+				<param name="excludeMethods">login</param>
+			</interceptor>
+			<!-- 自定义一个拦截器 -->
+			<interceptor-stack name="myStack">
+				<interceptor-ref name="BOSLoginInterceptor"></interceptor-ref>
+				<interceptor-ref name="defaultStack"></interceptor-ref>
+			</interceptor-stack>
+		</interceptors>
+		<!-- 指定默认的拦截器 -->
+		<default-interceptor-ref name="myStack"></default-interceptor-ref>
+
+		<global-results>
+			<result name="login">/login.jsp</result>
+		</global-results>
+
+		<!-- 需要进行权限控制的页面访问 -->
+		<action name="page_*_*">
+			<result type="dispatcher">/WEB-INF/pages/{1}/{2}.jsp</result>
+		</action>
+		<!-- 用户管理Action -->
+		<!-- class:为当前Action对象在spring工厂中的bean的ID -->
+		<action name="userAction_*" class="userAction" method="{1}">
+			<result name="home">/index.jsp</result>
+			<result name="list">/WEB-INF/pages/admin/userlist.jsp</result>
+		</action>
+		<!-- 取派员管理 -->
+		<action name="staffAction_*" class="staffAction" method="{1}">
+			<result name="list">/WEB-INF/pages/base/staff.jsp</result>
+		</action>
+		<!-- 区域管理 -->
+		<action name="regionAction_*" class="regionAction" method="{1}">
+		</action>
+		<!-- 分区管理 -->
+		<action name="subareaAction_*" class="subareaAction" method="{1}">
+			<result name="list">/WEB-INF/pages/base/subarea.jsp</result>
+		</action>
+		<!-- 定区管理 -->
+		<action name="decidedzoneAction_*" class="decidedzoneAction"
+			method="{1}">
+			<result name="list">/WEB-INF/pages/base/decidedzone.jsp</result>
+		</action>
+		<!-- 业务通知单管理 -->
+		<action name="noticebillAction_*" class="noticebillAction"
+			method="{1}">
+			<result name="addUI">/WEB-INF/pages/qupai/noticebill_add.jsp</result>
+		</action>
+		<!-- 工作单管理 -->
+		<action name="workordermanageAction_*" class="workordermanageAction"
+			method="{1}">
+			<result name="list">/WEB-INF/pages/workflow/startransfer.jsp</result>
+			<result name="toList" type="redirectAction">
+				workordermanageAction_list
+			</result>
+		</action>
+		<!-- 权限管理 -->
+		<action name="functionAction_*" class="functionAction" method="{1}">
+			<result name="list">/WEB-INF/pages/admin/function.jsp</result>
+		</action>
+		<!-- 角色管理 -->
+		<action name="roleAction_*" class="roleAction" method="{1}">
+			<result name="list">/WEB-INF/pages/admin/role.jsp</result>
+		</action>
+		<!-- 流程定义管理 -->
+		<action name="processDefinitionAction_*" class="processDefinitionAction"
+			method="{1}">
+			<result name="pdlist">/WEB-INF/pages/workflow/processdefinition_list.jsp
+			</result>
+			<result name="toPdlist" type="redirectAction">
+				processDefinitionAction_list
+			</result>
+			<result name="showpng" type="stream">
+				<param name="contentType">image/png</param>
+				<param name="inputName">pngStream</param>
+				<!-- 
+				<param name="contentDisposition">attachment;filename="document.png"</param>
+				<param name="bufferSize">1024</param>
+				 -->
+			</result>
+		</action>
+		<!-- 流程实例管理 -->
+		<action name="processInstanceAction_*" class="processInstanceAction" method="{1}">
+			<result name="list">/WEB-INF/pages/workflow/processinstance.jsp</result>
+			<result name="showPng">/WEB-INF/pages/workflow/image.jsp</result>
+			<result name="viewImage" type="stream">
+				<param name="contentType">image/png</param>
+				<param name="inputName">pngStream</param>
+			</result>
+		</action>
+		<!-- 任务操作 -->
+		<action name="taskAction_*" class="taskAction" method="{1}">
+			<result name="grouptasklist">/WEB-INF/pages/workflow/grouptask.jsp</result>
+			<result name="toGrouptasklist" type="redirectAction">
+				taskAction_findGroupTask
+			</result>
+			<result name="personaltasklist">/WEB-INF/pages/workflow/personaltask.jsp</result>
+			<result name="checkUI">/WEB-INF/pages/workflow/check.jsp</result>
+			<result name="toPersonaltasklist" type="redirectAction">
+				taskAction_findPersonalTask
+			</result>
+		</action>
+	</package>
+</struts> 

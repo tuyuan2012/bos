@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+						http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/context
+						http://www.springframework.org/schema/context/spring-context.xsd
+						http://www.springframework.org/schema/aop
+						http://www.springframework.org/schema/aop/spring-aop.xsd
+						http://www.springframework.org/schema/tx 
+						http://www.springframework.org/schema/tx/spring-tx.xsd">
+	
+	<!-- 公共配置文件，web.xml配置加载核心文件 -->
+	<!-- 1 加载properties文件 -->
+	<context:property-placeholder location="classpath:jdbc.properties"/>
+	<!-- 2 配置数据源 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="${jdbc.driverClass}"></property>
+		<property name="jdbcUrl" value="${jdbc.jdbcUrl}"></property>
+		<property name="user" value="${jdbc.user}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+	</bean>
+	<!-- 3 配置hibernate SessionFactory -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+		<!-- 3.1 配置数据源 
+			* <property name="属性名" ref="另一个bean引用">
+				name 必须是对象的setter方法推断获得，setDataSource(...)， 去掉set DataSource ，首字母小写  dataSource
+			* ref 其他bean引用 <bean id=""> 可以任意，一般情况与上面属性名称相同。
+		-->
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- 3.2 配置hibernate其他属性 
+			* 在hibernate.cfg.xml 配置文件 “hibernate.dialect” 和 “dialect” 等效的
+			* 在spring配置文件中，必须使用“hibernate.dialect”
+		-->
+		<property name="hibernateProperties">
+			<props>
+				<!-- 方言 -->
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</prop>
+				<!-- 显示sql语句 -->
+				<prop key="hibernate.show_sql">true</prop>
+				<!-- 格式化sql语句 -->
+				<prop key="hibernate.format_sql">true</prop>
+			</props>
+		</property>
+		<!-- 3.3 加载映射文件 
+			com/itheima/crm/staff/domain/CrmStaff.hbm.xml
+			com/itheima/crm/post/domain/CrmPost.hbm.xml
+			com/itheima/crm/*/domain/*.hbm.xml
+			<property name="mappingLocations" value="classpath:com/itheima/bos/domain/*.hbm.xml"></property>
+		-->
+		<!-- 注入hbm映射文件 -->
+		<property name="mappingDirectoryLocations">
+			<list>
+				<value>classpath:com/itheima/bos/domain</value>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 事务管理器 -->
+	<bean id="txManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean>
+	
+	<!-- 组件扫描 -->
+	<context:component-scan base-package="com.itheima.bos"></context:component-scan>
+	<context:annotation-config/>
+	
+	<!-- 事务注解 -->
+	<tx:annotation-driven transaction-manager="txManager"/>
+	
+	<!-- 组件扫描 -->
+	<context:component-scan base-package="com.itheima.bos"></context:component-scan>
+	<context:annotation-config/>
+	
+	<!-- 事务注解 -->
+	<tx:annotation-driven transaction-manager="txManager"/>
+	
+	<!-- 配置远程服务的代理对象 -->
+	<bean id="customerService" class="org.springframework.remoting.caucho.HessianProxyFactoryBean">
+		<property name="serviceInterface" value="com.itheima.bos.crm.CustomerService"/>
+		<property name="serviceUrl" value="http://localhost:8080/crm/remoting/customer"/>
+	</bean>
+	
+	<!-- 配置shiroFilter，工厂，用于创建过滤器 -->
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<!-- 注入安全管理器 -->
+		<property name="securityManager" ref="securityManager"/>
+		<!-- 注入系统登录页面 -->
+		<property name="loginUrl" value="/login.jsp"/>
+		<!-- 注入成功页面 -->
+		<property name="successUrl" value="/index.jsp"/>
+		<!-- 注入权限不足提示页面 -->
+		<property name="unauthorizedUrl" value="/unauthorizedUrl.jsp"/>
+		<!-- URL拦截规则 -->
+		<property name="filterChainDefinitions">
+			<value>
+				/css/** = anon
+				/js/** = anon
+			    /validatecode.jsp* = anon
+			    /images/** = anon
+			    /login.jsp* = anon
+			    /userAction_login* = anon
+			    /page_base_staff.action = perms["staff"]
+				/** = authc
+			</value>
+		</property>
+	</bean>
+	
+	<!-- 注册自定义realm -->
+	<bean id="bosRealm" class="com.itheima.bos.shiro.BOSRealm"/>
+	
+	<!-- 注册安全管理器 -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<!-- 注入reaml -->
+		<property name="realm" ref="bosRealm"/>
+		<!-- 注入缓存管理器 -->
+		<property name="cacheManager" ref="cacheManager"/>
+	</bean>
+	
+	<!-- 注册缓存管理器 -->
+	<bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManagerConfigFile" value="classpath:ehcache.xml"/>
+	</bean>
+	
+	<!-- 开启shiro注解 -->
+	<bean id="defaultAdvisorAutoProxyCreator" 
+		class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator">
+		<property name="proxyTargetClass" value="true"/>
+	</bean>
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor"/>
+	
+	<!-- activiti相关配置 -->
+	<!-- 注册一个流程引擎配置对象 -->
+	<bean id="processEngineConfiguration"  class="org.activiti.spring.SpringProcessEngineConfiguration">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="transactionManager" ref="txManager"/>
+		<!-- 自动建表 -->
+		<property name="databaseSchemaUpdate" value="true"/>
+	</bean>
+	
+	<!-- 配置一个工厂bean，用于创建流程引擎对象 -->
+	<bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+		<property name="processEngineConfiguration" ref="processEngineConfiguration"/>
+	</bean>
+	
+	<bean id="repositoryService" factory-bean="processEngine" factory-method="getRepositoryService"/>
+	<bean id="taskService" factory-bean="processEngine" factory-method="getTaskService"/>
+	<bean id="runtimeService" factory-bean="processEngine" factory-method="getRuntimeService"/>
+	<bean id="identityService" factory-bean="processEngine" factory-method="getIdentityService"/>
+</beans>
